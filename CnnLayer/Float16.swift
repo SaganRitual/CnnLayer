@@ -1,10 +1,8 @@
 //
-//    Bloat16.swift
+//    Float16.swift
 //    ZKit
 //
 //    The MIT License (MIT)
-//
-//    Copyright (c) 2016 Electricwoods LLC, Kaz Yoshikawa.
 //
 //    Permission is hereby granted, free of charge, to any person obtaining a copy
 //    of this software and associated documentation files (the "Software"), to deal
@@ -28,134 +26,219 @@
 import Foundation
 import Accelerate
 
-struct Float16: CustomStringConvertible {
+typealias FF16 = UInt16
+typealias FF32 = Float
 
-    var rawValue: UInt16
+typealias IB16 = UnsafeBufferPointer<FF16>
+typealias IB32 = UnsafeBufferPointer<FF32>
 
-    static func float_to_float16(value: Float) -> UInt16 {
-        let input: [Float] = [value]
-        let output: [UInt16] = [0]
+typealias MB16 = UnsafeMutableBufferPointer<FF16>
+typealias MB32 = UnsafeMutableBufferPointer<FF32>
 
-        let pInput = UnsafeMutableRawPointer.allocate(byteCount: MemoryLayout<Float>.size, alignment: MemoryLayout<Float>.alignment)
-        pInput.initializeMemory(as: Float.self, from: input, count: input.count)
+typealias IR = UnsafeRawPointer
+typealias MR = UnsafeMutableRawPointer
 
-        let pOutput = UnsafeMutableRawPointer.allocate(byteCount: MemoryLayout<UInt16>.size, alignment: MemoryLayout<UInt16>.alignment)
+class F16<T, U> {
+    let input16: [FF16]?
+    let output16: [FF16]?
 
-        var sourceBuffer = vImage_Buffer(data: pInput, height: 1, width: 1, rowBytes: MemoryLayout<Float>.size)
-        var destinationBuffer = vImage_Buffer(data: pOutput, height: 1, width: 1, rowBytes: MemoryLayout<UInt16>.size)
-        vImageConvert_PlanarFtoPlanar16F(&sourceBuffer, &destinationBuffer, 0)
+    let input32: [FF32]?
+    let output32: [FF32]?
 
-        defer { [pInput, pOutput].forEach { $0.deallocate() } }
+    init(_ input16: FF16) {
+        self.input32 = nil
+        self.output16 = nil
 
-        return output[0]
+        self.input16 = [input16]
+        self.output32 = [0]
     }
 
-    static func float16_to_float(value: UInt16) -> Float {
-        let input: [UInt16] = [value]
-        let output: [Float] = [0]
+    init(_ input16: [FF16]) {
+        self.input32 = nil
+        self.output16 = nil
 
-        let pInput = UnsafeMutableRawPointer.allocate(byteCount: MemoryLayout<UInt16>.size, alignment: MemoryLayout<UInt16>.alignment)
-        pInput.initializeMemory(as: UInt16.self, from: input, count: input.count)
-
-        let pOutput = UnsafeMutableRawPointer.allocate(byteCount: MemoryLayout<Float>.size, alignment: MemoryLayout<Float>.alignment)
-
-        var sourceBuffer = vImage_Buffer(data: pInput, height: 1, width: 1, rowBytes: MemoryLayout<UInt16>.size)
-        var destinationBuffer = vImage_Buffer(data: pOutput, height: 1, width: 1, rowBytes: MemoryLayout<Float>.size)
-        vImageConvert_Planar16FtoPlanarF(&sourceBuffer, &destinationBuffer, 0)
-
-        defer { [pInput, pOutput].forEach { $0.deallocate() } }
-
-        return output[0]
+        self.input16 = input16
+        self.output32 = [FF32](repeating: 0, count: input16.count)
     }
 
-    static func floats_to_float16s(
-        input: UnsafeRawPointer, output: UnsafeMutableBufferPointer<UInt16>
-    ) {
-        let width = vImagePixelCount(output.count)
+    init(_ input32: FF32) {
+        self.input16 = nil
+        self.output32 = nil
 
-        let pInput = UnsafeMutableRawPointer(mutating: input)
-        var sourceBuffer = vImage_Buffer(
-            data: pInput, height: 1, width: width,
-            rowBytes: MemoryLayout<Float>.size * output.count
-        )
-
-        let pOutput = UnsafeMutableRawPointer(output.baseAddress)
-        var destinationBuffer = vImage_Buffer(
-            data: pOutput, height: 1, width: width,
-            rowBytes: MemoryLayout<UInt16>.size * output.count
-        )
-
-        vImageConvert_PlanarFtoPlanar16F(&sourceBuffer, &destinationBuffer, 0)
+        self.input32 = [input32]
+        self.output16 = [0]
     }
 
-    static func floats_to_float16s(values: [Float]) -> [UInt16] {
-        let inputs = values
-        let width = vImagePixelCount(values.count)
+    init(_ input32: [FF32]) {
+        self.input16 = nil
+        self.output32 = nil
 
-        let pInput = UnsafeMutableRawPointer.allocate(byteCount: values.count * MemoryLayout<Float>.size, alignment: MemoryLayout<Float>.alignment)
-        pInput.initializeMemory(as: Float.self, from: inputs, count: inputs.count)
+        self.input32 = input32
+        self.output16 = [FF16](repeating: 0, count: input32.count)
+    }
+}
 
-        let pOutput = UnsafeMutableRawPointer.allocate(byteCount: values.count * MemoryLayout<UInt16>.size, alignment: MemoryLayout<UInt16>.alignment)
+func float16ToFloat32(_ f16in: FF16) -> FF32 {
+    return F16<FF16, FF32>(f16in).toFloat32()
+}
 
-        var sourceBuffer = vImage_Buffer(data: pInput, height: 1, width: width, rowBytes: MemoryLayout<Float>.size * values.count)
-        var destinationBuffer = vImage_Buffer(data: pOutput, height: 1, width: width, rowBytes: MemoryLayout<UInt16>.size * values.count)
-        vImageConvert_PlanarFtoPlanar16F(&sourceBuffer, &destinationBuffer, 0)
+func float16sToFloat32s(_ f16in: [FF16]) -> [FF32] {
+    return F16<FF16, FF32>(f16in).toFloat32Array()
+}
 
-        let pp = pOutput.assumingMemoryBound(to: UInt16.self)
-        let ff = UnsafeBufferPointer(start: pp, count: values.count)
+func float32ToFloat16(_ f32in: FF32) -> FF16 {
+    return F16<FF16, FF32>(f32in).toFloat16()
+}
 
-        defer { [pInput, pOutput].forEach { $0.deallocate() } }
+func float32sToFloat16s(_ f32in: [FF32]) -> [FF16] {
+    return F16<FF16, FF32>(f32in).toFloat16Array()
+}
 
-        return ff.map { $0 }
+extension F16 {
+    func toFloat32() -> FF32 {
+        guard let f16 = input16, let f32 = output32 else {
+            preconditionFailure(
+                "Error: f16 -> f32 requested but f16/f32 isn't set up"
+            )
+        }
+
+        guard f16.count == 1, f32.count == 1 else {
+            preconditionFailure(
+                "Can't convert multi-element to single or single-element to multi"
+            )
+        }
+
+        f16.withUnsafeBufferPointer { f16in in
+            let b16in_ = vImage_Buffer(
+                data: MR(mutating: f16in.baseAddress!),
+                height: 1, width: 1, rowBytes: bytes(FF16.self, 1)
+            )
+
+            let b16in = [b16in_]
+
+            f32.withUnsafeBufferPointer { f32out in
+                let b32out_ = vImage_Buffer(
+                    data: MR(mutating: f32out.baseAddress!),
+                    height: 1, width: 1, rowBytes: bytes(FF32.self, 1)
+                )
+
+                let b32out = [b32out_]
+
+                vImageConvert_Planar16FtoPlanarF(b16in, b32out, 0)
+            }
+        }
+
+        return f32.first!
     }
 
-    static func float16s_to_floats(values: [UInt16]) -> [Float] {
-        let inputs: [UInt16] = values
-        let width = vImagePixelCount(values.count)
+    func toFloat16() -> FF16 {
+        guard let f32 = input32, let f16 = output16 else {
+            preconditionFailure(
+                "Error: f32 -> f16 requested but f16/f32 isn't set up"
+            )
+        }
 
-        let pInput = UnsafeMutableRawPointer.allocate(byteCount: MemoryLayout<UInt16>.size, alignment: MemoryLayout<UInt16>.alignment)
-        pInput.initializeMemory(as: UInt16.self, from: inputs, count: inputs.count)
+        guard f16.count == 1, f32.count == 1 else {
+            preconditionFailure(
+                "Can't convert multi-element to single or single-element to multi"
+            )
+        }
 
-        let pOutput = UnsafeMutableRawPointer.allocate(byteCount: MemoryLayout<Float>.size, alignment: MemoryLayout<Float>.alignment)
+        f32.withUnsafeBufferPointer { f32in in
+            let b32in_ = vImage_Buffer(
+                data: MR(mutating: f32in.baseAddress!),
+                height: 1, width: 1, rowBytes: bytes(FF32.self, 1)
+            )
 
-        var sourceBuffer = vImage_Buffer(data: pInput, height: 1, width: width, rowBytes: MemoryLayout<UInt16>.size * values.count)
-        var destinationBuffer = vImage_Buffer(data: pOutput, height: 1, width: width, rowBytes: MemoryLayout<Float>.size * values.count)
-        vImageConvert_Planar16FtoPlanarF(&sourceBuffer, &destinationBuffer, 0)
+            let b32in = [b32in_]
 
-        let pp = pOutput.assumingMemoryBound(to: Float.self)
-        let ff = UnsafeBufferPointer(start: pp, count: values.count)
+            f16.withUnsafeBufferPointer { f16out in
+                let b16out_ = vImage_Buffer(
+                    data: MR(mutating: f16out.baseAddress!),
+                    height: 1, width: 1, rowBytes: bytes(FF16.self, 1)
+                )
 
-        defer { [pInput, pOutput].forEach { $0.deallocate() } }
+                let b16out = [b16out_]
 
-        return ff.map { $0 }
+                vImageConvert_PlanarFtoPlanar16F(b32in, b16out, 0)
+            }
+        }
+
+        return f16.first!
     }
 
-    init(_ value: Float) {
-        self.rawValue = Float16.float_to_float16(value: value)
+    func toFloat32Array() -> [FF32] {
+        guard let f16 = input16, let f32 = output32 else {
+            preconditionFailure(
+                "Error: [f16] -> [f32] requested but f16/f32 isn't set up"
+            )
+        }
+
+        f16.withUnsafeBufferPointer { f16in in
+            let b16in_ = vImage_Buffer(
+                data: MR(mutating: f16in.baseAddress!),
+                height: 1, width: vImagePixelCount(f16.count),
+                rowBytes: bytes(FF16.self, f16.count)
+            )
+
+            let b16in = [b16in_]
+
+            f32.withUnsafeBufferPointer { f32out in
+                let b32out_ = vImage_Buffer(
+                    data: MR(mutating: f32out.baseAddress!),
+                    height: 1, width: vImagePixelCount(f16.count),
+                    rowBytes: bytes(FF32.self, f16.count)
+                )
+
+                let b32out = [b32out_]
+
+                vImageConvert_Planar16FtoPlanarF(b16in, b32out, 0)
+            }
+        }
+
+        return f32
     }
 
-    var floatValue: Float {
-        return Float16.float16_to_float(value: self.rawValue)
+    func toFloat16Array() -> [FF16] {
+        guard let f32 = input32, let f16 = output16 else {
+            preconditionFailure(
+                "Error: [f32] -> [f16] requested but f16/f32 isn't set up"
+            )
+        }
+
+        f32.withUnsafeBufferPointer { f32in in
+            let b32in_ = vImage_Buffer(
+                data: MR(mutating: f32in.baseAddress!),
+                height: 1, width: vImagePixelCount(f32.count),
+                rowBytes: bytes(FF32.self, f32.count)
+            )
+
+            let b32in = [b32in_]
+
+            f16.withUnsafeBufferPointer { f16out in
+                let b16out_ = vImage_Buffer(
+                    data: MR(mutating: f16out.baseAddress!),
+                    height: 1, width: vImagePixelCount(f32.count),
+                    rowBytes: bytes(FF16.self, f32.count)
+                )
+
+                let b16out = [b16out_]
+
+                vImageConvert_Planar16FtoPlanarF(b32in, b16out, 0)
+            }
+        }
+
+        return f16
+    }
+}
+
+private extension F16 {
+    func bytes<T>(_ type: T, _ elements: Int) -> vImagePixelCount {
+        vImagePixelCount(MemoryLayout<T>.size * elements)
     }
 
-    var description: String {
-        return self.floatValue.description
-    }
-
-    static func + (lhs: Float16, rhs: Float16) -> Float16 {
-        return Float16(lhs.floatValue + rhs.floatValue)
-    }
-
-    static func - (lhs: Float16, rhs: Float16) -> Float16 {
-        return Float16(lhs.floatValue - rhs.floatValue)
-    }
-
-    static func * (lhs: Float16, rhs: Float16) -> Float16 {
-        return Float16(lhs.floatValue * rhs.floatValue)
-    }
-
-    static func / (lhs: Float16, rhs: Float16) -> Float16 {
-        return Float16(lhs.floatValue / rhs.floatValue)
+    func bytes<T>(_ type: T, _ elements: Int) -> Int {
+        Int(MemoryLayout<T>.size * elements)
     }
 }
 

@@ -53,24 +53,24 @@ struct HotMess {
     func setupInputs(
         _ inputs: [Float], inputImage: MPSImage, region: MTLRegion, elementsPerRow: Int
     ) {
-        let inputs32 = SwiftPointer(Float.self, elements: inputs.count)
-        inputs32.raw.initializeMemory(as: Float.self, from: inputs, count: inputs.count)
-
-        let inputs16 = SwiftPointer(UInt16.self, elements: inputs.count)
-
-        Float16.floats_to_float16s(input: inputs32.raw, output: inputs16.getMutableBufferPointer())
+        let inputs16 = float32sToFloat16s(inputs)
 
         inputImage.texture.replace(
-            region: region, mipmapLevel: 0, withBytes: inputs16.getRawPointer(), bytesPerRow: elementsPerRow * MemoryLayout<UInt16>.size
+            region: region, mipmapLevel: 0, withBytes: inputs16, bytesPerRow: elementsPerRow * MemoryLayout<UInt16>.size
         )
     }
 
     func getOutputs(from image: MPSImage, region: MTLRegion, width: Int, height: Int) -> [Float] {
-        let outputs16 = SwiftPointer(UInt16.self, elements: width * height)
+        let outputs16___ = UnsafeMutableBufferPointer<FF16>.allocate(capacity: width * height)
+        let outputs16__ = UnsafeBufferPointer(outputs16___)
+        let outputs16_ = UnsafeMutableRawPointer(mutating: outputs16__.baseAddress!)
 
-        image.texture.getBytes(outputs16.raw, bytesPerRow: width * MemoryLayout<UInt16>.size, from: region, mipmapLevel: 0)
+        image.texture.getBytes(outputs16_, bytesPerRow: width * MemoryLayout<UInt16>.size, from: region, mipmapLevel: 0)
 
-        return Float16.float16s_to_floats(values: outputs16.getArray())
+        let outputs16 = outputs16___.map { $0 }
+
+        defer { outputs16___.deallocate() }
+
+        return float16sToFloat32s(outputs16)
     }
-
 }
