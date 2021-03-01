@@ -6,46 +6,42 @@ import MetalPerformanceShaders
 func demonstrateFutility() {
     let device = MTLCopyAllDevices()[0]
 
-    let inputs: [Float] = ([Int](0..<42)).map { Float($0) }
+    let primaryImageInputs: [Float] = ([Int](0..<42)).map { Float($0) }
+    let secondaryImageInputs: [Float] = ([Int](0..<42)).map { _ in 1 }
 
-    let inputRegion = MTLRegionMake2D(0, 0, 7, 6)
-    let outputRegion = MTLRegionMake2D(0, 0, 6, 5)
+    let primaryInputRegion = MTLRegionMake2D(0, 0, 7, 6)
+    let secondaryInputRegion = MTLRegionMake2D(0, 0, 7, 6)
+    let destinationRegion = MTLRegionMake2D(0, 0, 7, 6)
 
     let hotMess = HotMess()
 
-    let source1Image = hotMess.setupSourceImage(device: device, width: 7, height: 6)
-    let destinationImage = hotMess.setupDestinationImage(device: device, width: 6, height: 5)
+    let primaryImage = hotMess.setupSourceImage(device: device, width: 7, height: 6)
+    let secondaryImage = hotMess.setupSourceImage(device: device, width: 7, height: 6)
+    let destinationImage = hotMess.setupDestinationImage(device: device, width: 7, height: 6)
 
-    hotMess.setupInputs(inputs, inputImage: source1Image, region: inputRegion, elementsPerRow: 7)
+    hotMess.setupInputs(primaryImageInputs, inputImage: primaryImage, region: primaryInputRegion, elementsPerRow: 7)
+    hotMess.setupInputs(secondaryImageInputs, inputImage: secondaryImage, region: secondaryInputRegion, elementsPerRow: 7)
 
-//    let weights = SwiftPointer(Float.self, elements: 42 * 30)
-//    weights.getMutableBufferPointer().assign(repeating: 1)
-
-//    let ds = hotMess.setupDataSource(width: 42, height: 30, weights: weights)
-//    let fucerometer = MPSCNNFullyConnected(device: device, weights: ds)
-//
-//    fucerometer.clipRect.size.width = 4
-//    fucerometer.clipRect.size.height = 4
-
-    let poolerometer = MPSCNNPoolingMax(device: device, kernelWidth: 4, kernelHeight: 4)
-    poolerometer.offset.x = 1
-    poolerometer.offset.y = 1
-    poolerometer.edgeMode = .zero
+    let multerometer = MPSCNNMultiply(device: device)
 
     let commandQueue = device.makeCommandQueue()!
     let commandBuffer = commandQueue.makeCommandBuffer()!
 
-    poolerometer.encode(
-        commandBuffer: commandBuffer, sourceImage: source1Image,
-        destinationImage: destinationImage
+    multerometer.encode(
+        commandBuffer: commandBuffer, primaryImage: primaryImage,
+        secondaryImage: secondaryImage, destinationImage: destinationImage
     )
 
     commandBuffer.commit()
     commandBuffer.waitUntilCompleted()
 
-    print("inputs", inputs)
-    let outputs = hotMess.getOutputs(from: destinationImage, region: outputRegion, width: 6, height: 5)
+    print("inputs", primaryImageInputs)
+    let outputs = hotMess.getOutputs(from: destinationImage, region: destinationRegion, width: 7, height: 6)
     print("outputs \(outputs.map { Float($0 * 1) })")
 }
 
 demonstrateFutility()
+
+func demonstrateQuixote() {
+    
+}
