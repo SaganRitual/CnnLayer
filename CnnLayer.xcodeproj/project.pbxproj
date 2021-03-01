@@ -33,6 +33,9 @@
 		D416E23725CCC4EE00469A69 /* Float16.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Float16.swift; sourceTree = "<group>"; };
 		D416E23A25CCD8D400469A69 /* SwiftPointer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftPointer.swift; sourceTree = "<group>"; };
 		D416E23E25CCE65200469A69 /* HotMess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotMess.swift; sourceTree = "<group>"; };
+		D4E1AE7725ECBF0500DAFD33 /* .overcommit.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .overcommit.yml; sourceTree = "<group>"; };
+		D4E1AE7825ECBF0500DAFD33 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
+		D4E1AE7925ECBF0500DAFD33 /* swiftlint.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = swiftlint.sh; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,6 +52,9 @@
 		D416E1E325CC84E000469A69 = {
 			isa = PBXGroup;
 			children = (
+				D4E1AE7725ECBF0500DAFD33 /* .overcommit.yml */,
+				D4E1AE7825ECBF0500DAFD33 /* .swiftlint.yml */,
+				D4E1AE7925ECBF0500DAFD33 /* swiftlint.sh */,
 				D416E1EE25CC84E000469A69 /* CnnLayer */,
 				D416E1ED25CC84E000469A69 /* Products */,
 			);
