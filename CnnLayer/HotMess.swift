@@ -11,6 +11,9 @@ struct HotMess {
             inputFeatureChannels: 1, outputFeatureChannels: 1, neuronFilter: nil
         )
 
+        convolutionDescriptor.strideInPixelsX = 1
+        convolutionDescriptor.strideInPixelsY = 1
+
         return DataSourceCnn(
             biases: nil, weights: weights.raw, convolutionDescriptor: convolutionDescriptor
         )
@@ -22,6 +25,7 @@ struct HotMess {
         )
 
         let image = MPSImage(device: device, imageDescriptor: sourceImageDescriptor)
+
         return image
     }
 

@@ -6,39 +6,46 @@ import MetalPerformanceShaders
 func demonstrateFutility() {
     let device = MTLCopyAllDevices()[0]
 
-    let width = 3
-    let height = 2
+    let inputs: [Float] = ([Int](0..<42)).map { Float($0) }
 
-    let inputs: [Float] = .init(repeating: 1, count: width * height)
-    let weights_: [Float] = .init(repeating: 1, count: width * height)
-
-    let weights = SwiftPointer(Float.self, elements: weights_.count)
-    weights.raw.initializeMemory(as: Float.self, from: weights_, count: weights_.count)
-
-    let region = MTLRegionMake2D(0, 0, width, height)
+    let inputRegion = MTLRegionMake2D(0, 0, 7, 6)
+    let outputRegion = MTLRegionMake2D(0, 0, 6, 5)
 
     let hotMess = HotMess()
 
-    let dataSource = hotMess.setupDataSource(width: width, height: height, weights: weights)
-    let sourceImage = hotMess.setupSourceImage(device: device, width: width, height: height)
-    let destinationImage = hotMess.setupDestinationImage(device: device, width: width, height: height)
-    let convolution = hotMess.setupConvolution(device: device, width: width, height: height, dataSource: dataSource)
+    let source1Image = hotMess.setupSourceImage(device: device, width: 7, height: 6)
+    let destinationImage = hotMess.setupDestinationImage(device: device, width: 6, height: 5)
 
-    hotMess.setupInputs(inputs, inputImage: sourceImage, region: region, elementsPerRow: width)
+    hotMess.setupInputs(inputs, inputImage: source1Image, region: inputRegion, elementsPerRow: 7)
+
+//    let weights = SwiftPointer(Float.self, elements: 42 * 30)
+//    weights.getMutableBufferPointer().assign(repeating: 1)
+
+//    let ds = hotMess.setupDataSource(width: 42, height: 30, weights: weights)
+//    let fucerometer = MPSCNNFullyConnected(device: device, weights: ds)
+//
+//    fucerometer.clipRect.size.width = 4
+//    fucerometer.clipRect.size.height = 4
+
+    let poolerometer = MPSCNNPoolingMax(device: device, kernelWidth: 4, kernelHeight: 4)
+    poolerometer.offset.x = 1
+    poolerometer.offset.y = 1
+    poolerometer.edgeMode = .zero
 
     let commandQueue = device.makeCommandQueue()!
     let commandBuffer = commandQueue.makeCommandBuffer()!
 
-    convolution.encode(
-        commandBuffer: commandBuffer,
-        sourceImage: sourceImage, destinationImage: destinationImage
+    poolerometer.encode(
+        commandBuffer: commandBuffer, sourceImage: source1Image,
+        destinationImage: destinationImage
     )
 
     commandBuffer.commit()
     commandBuffer.waitUntilCompleted()
 
-    let outputs = hotMess.getOutputs(from: destinationImage, region: region, width: width, height: height)
-    print("outputs \(outputs)")
+    print("inputs", inputs)
+    let outputs = hotMess.getOutputs(from: destinationImage, region: outputRegion, width: 6, height: 5)
+    print("outputs \(outputs.map { Float($0 * 1) })")
 }
 
 demonstrateFutility()
