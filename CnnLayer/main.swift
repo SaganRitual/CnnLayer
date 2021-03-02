@@ -113,12 +113,12 @@ func demonstrateQuixote(width: Int, height: Int) {
     commandBuffer.commit()
     commandBuffer.waitUntilCompleted()
 
-    var result = [FF32](repeating: 0, count: width * height)
+    let rr32 = UnsafeMutableBufferPointer<FF32>.allocate(capacity: width * height)
 
-    result.withUnsafeMutableBufferPointer { destination.extractData(to: $0) }
+    destination.extractData(to: rr32)
 
     print("input  \(yeOldeData)")
-    print("result \(result.map { Float($0) * 256.0 / 127.0 })")
+    print("result \(rr32.map { Float($0) /* 256.0 / 127.0*/ })")
 }
 
 demonstrateQuixote(width: 4, height: 4)

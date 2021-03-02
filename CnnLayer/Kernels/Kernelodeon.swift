@@ -8,19 +8,11 @@ class Kernelodeon {
     let height: Int
     let width: Int
 
-    var data: UnsafeMutableBufferPointer<Float>
-    let deallocate: Bool
-
     let device: MTLDevice
     let image: MPSImage
     let region: MTLRegion
 
-    deinit { if deallocate { data.deallocate() } }
-
-    init(
-        _ device: MTLDevice, _ width: Int, _ height: Int,
-        data: UnsafeMutableBufferPointer<Float>? = nil
-    ) {
+    init(_ device: MTLDevice, _ width: Int, _ height: Int) {
         self.width = width
         self.height = height
         self.cElements = width * height
@@ -34,18 +26,9 @@ class Kernelodeon {
 
         self.image = MPSImage(device: device, imageDescriptor: d)
         self.region = MTLRegionMake2D(0, 0, width, height)
-
-        if let d = data { self.data = d; self.deallocate = false; return }
-
-        self.data = .allocate(capacity: cElements)
-        self.data.initialize(repeating: 0)
-        self.deallocate = true
     }
 
-    init(
-        _ device: MTLDevice, _ cElements: Int,
-        data: UnsafeMutableBufferPointer<Float>?
-    ) {
+    init(_ device: MTLDevice, _ cElements: Int) {
         self.width = cElements
         self.height = 1
         self.cElements = cElements
@@ -59,38 +42,33 @@ class Kernelodeon {
 
         self.image = MPSImage(device: device, imageDescriptor: d)
         self.region = MTLRegionMake2D(0, 0, width, height)
-
-        if let d = data { self.data = d; self.deallocate = false; return }
-
-        self.data = .allocate(capacity: cElements)
-        self.data.initialize(repeating: 0)
-        self.deallocate = true
     }
 
     func extractData(to outputBuffer: UnsafeMutableBufferPointer<FF32>) {
-        let rr16 = UnsafeMutableRawPointer.allocate(
-            byteCount: F16.bytes(FF16.self, outputBuffer.count),
-            alignment: F16.alignment(FF16.self)
-        )
+        assert(outputBuffer.count == cElements)
 
-        rr16.initializeMemory(as: FF16.self, repeating: 0, count: outputBuffer.count)
+        let bytesPerRow: Int = F16.bytesFF16(width)
+
+        let ff16 = UnsafeMutableBufferPointer<FF16>.allocate(capacity: cElements)
 
         image.texture.getBytes(
-            rr16, bytesPerRow: F16.bytes(FF16.self, width),
-            from: region, mipmapLevel: 0
+            UnsafeMutableRawPointer(ff16.baseAddress!),
+            bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0
         )
 
-        let uu16 = rr16.bindMemory(to: FF16.self, capacity: outputBuffer.count)
-        let ff16 = UnsafeBufferPointer(start: uu16, count: outputBuffer.count)
-        F16.to32(from: ff16, result: outputBuffer)
+        F16.to32(from: UnsafeBufferPointer(ff16), result: outputBuffer)
 
-        rr16.deallocate()
+        ff16.deallocate()
     }
 
     func inject(data: [FF32]) {
         data.withUnsafeBufferPointer { input32 in
+            assert(data.count == cElements)
+
+            let bytesPerRow: Int = F16.bytesFF16(width)
+
             let ff16 =
-                UnsafeMutableBufferPointer<FF16>.allocate(capacity: data.count)
+                UnsafeMutableBufferPointer<FF16>.allocate(capacity: cElements)
 
             ff16.initialize(repeating: 0)
 
@@ -100,7 +78,7 @@ class Kernelodeon {
 
             image.texture.replace(
                 region: region, mipmapLevel: 0,
-                withBytes: rr16, bytesPerRow: F16.bytes(FF16.self, width)
+                withBytes: rr16, bytesPerRow: bytesPerRow
             )
 
             ff16.deallocate()
