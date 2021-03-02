@@ -11,6 +11,7 @@
 		D416E1F825CCA44100469A69 /* Convolutioner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D416E1F725CCA44100469A69 /* Convolutioner.swift */; };
 		D416E23825CCC4EE00469A69 /* Float16.swift in Sources */ = {isa = PBXBuildFile; fileRef = D416E23725CCC4EE00469A69 /* Float16.swift */; };
 		D416E23B25CCD8D400469A69 /* SwiftPointer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D416E23A25CCD8D400469A69 /* SwiftPointer.swift */; };
+		D48065D225EED200007DFBC8 /* DemoConvolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = D48065D125EED200007DFBC8 /* DemoConvolution.swift */; };
 		D4E1AE8425EDD26A00DAFD33 /* Kernelodeon.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E1AE8325EDD26A00DAFD33 /* Kernelodeon.swift */; };
 /* End PBXBuildFile section */
 
@@ -32,6 +33,7 @@
 		D416E1F725CCA44100469A69 /* Convolutioner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Convolutioner.swift; sourceTree = "<group>"; };
 		D416E23725CCC4EE00469A69 /* Float16.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Float16.swift; sourceTree = "<group>"; };
 		D416E23A25CCD8D400469A69 /* SwiftPointer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftPointer.swift; sourceTree = "<group>"; };
+		D48065D125EED200007DFBC8 /* DemoConvolution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoConvolution.swift; sourceTree = "<group>"; };
 		D4E1AE8325EDD26A00DAFD33 /* Kernelodeon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kernelodeon.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -65,12 +67,21 @@
 		D416E1EE25CC84E000469A69 /* CnnLayer */ = {
 			isa = PBXGroup;
 			children = (
+				D48065D025EED1D7007DFBC8 /* Demos */,
 				D4E1AE8225EDD25A00DAFD33 /* Kernels */,
 				D416E1EF25CC84E000469A69 /* main.swift */,
 				D416E23725CCC4EE00469A69 /* Float16.swift */,
 				D416E23A25CCD8D400469A69 /* SwiftPointer.swift */,
 			);
 			path = CnnLayer;
+			sourceTree = "<group>";
+		};
+		D48065D025EED1D7007DFBC8 /* Demos */ = {
+			isa = PBXGroup;
+			children = (
+				D48065D125EED200007DFBC8 /* DemoConvolution.swift */,
+			);
+			path = Demos;
 			sourceTree = "<group>";
 		};
 		D4E1AE8225EDD25A00DAFD33 /* Kernels */ = {
@@ -140,6 +151,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D416E1F825CCA44100469A69 /* Convolutioner.swift in Sources */,
+				D48065D225EED200007DFBC8 /* DemoConvolution.swift in Sources */,
 				D416E23825CCC4EE00469A69 /* Float16.swift in Sources */,
 				D4E1AE8425EDD26A00DAFD33 /* Kernelodeon.swift in Sources */,
 				D416E1F025CC84E000469A69 /* main.swift in Sources */,
