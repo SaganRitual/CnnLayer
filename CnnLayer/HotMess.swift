@@ -44,7 +44,7 @@ struct HotMess {
     func setupConvolution(device: MTLDevice, width: Int, height: Int, dataSource: DataSourceCnn) -> MPSCNNConvolution {
         let convolution = MPSCNNConvolution(device: device, weights: dataSource)
 
-        convolution.offset = MPSOffset(x: width / 2, y: height / 2, z: 0)
+        convolution.offset = MPSOffset(x: 0, y: 0, z: 0)
         convolution.edgeMode = .zero
 
         return convolution

@@ -2,21 +2,32 @@
 
 import Foundation
 import MetalPerformanceShaders
-
+/*
 func demonstrateFutility() {
     let device = MTLCopyAllDevices()[0]
 
-    let inputs: [Float] = ([Int](0..<42)).map { _ in Float(Bool.random() ? 1 : 1) }
+    let s1Data: [Float] = ([Int](0..<16)).map { _ in Float(Bool.random() ? 1 : 1) }
+//    let s2Data: [Float] = ([Int](0..<16)).map { _ in Float(Bool.random() ? 1 : 1) }
 
-    let inputRegion = MTLRegionMake2D(0, 0, 7, 6)
-    let outputRegion = MTLRegionMake2D(0, 0, 6, 5)
+    let s2Data: [Float] = [
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 1, 1
+    ]
+
+    let s1Region: MTLRegion; s1Region = MTLRegionMake2D(0, 0, 4, 4)
+    let s2Region = MTLRegionMake2D(0, 0, 4, 4)
+    let dRegion = MTLRegionMake2D(0, 0, 4, 4)
 
     let hotMess = HotMess()
 
-    let source1Image = hotMess.setupSourceImage(device: device, width: 7, height: 6)
-    let destinationImage = hotMess.setupDestinationImage(device: device, width: 6, height: 5)
+    let s1Image = hotMess.setupSourceImage(device: device, width: 4, height: 4)
+    let s2Image = hotMess.setupSourceImage(device: device, width: 4, height: 4)
+    let dImage = hotMess.setupDestinationImage(device: device, width: 4, height: 4)
 
-    hotMess.setupInputs(inputs, inputImage: source1Image, region: inputRegion, elementsPerRow: 7)
+    hotMess.setupInputs(s1Data, inputImage: s1Image, region: s1Region, elementsPerRow: 4)
+    hotMess.setupInputs(s2Data, inputImage: s2Image, region: s2Region, elementsPerRow: 4)
 
 //    let weights = SwiftPointer(Float.self, elements: 42 * 30)
 //    weights.getMutableBufferPointer().assign(repeating: 1)
@@ -28,31 +39,86 @@ func demonstrateFutility() {
 //    fucerometer.clipRect.size.height = 4
 
 //    let myWeights = SwiftPointer<Float>(Float.self, elements: 16)
-//    myWeights.getMutableBufferPointer().assign(repeating: 1)
-//    let ds = hotMess.setupDataSource(width: 4, height: 4, weights: myWeights)
-//    let convolometer = hotMess.setupConvolution(device: device, width: 4, height: 4, dataSource: ds)
+////    myWeights.getMutableBufferPointer().initialize(repeating: 1)
+//    _ = myWeights.getMutableBufferPointer().initialize(from:[
+//        0, 0, 0, 0.25,
+//        0, 0, 0, 1,
+//        0, 0, 0, 1,
+//        0, 0, 0, 1
+//    ])
 
-    let poolerometer = MPSCNNPoolingMax(device: device, kernelWidth: 4, kernelHeight: 4)
-    poolerometer.offset.x = 1
-    poolerometer.offset.y = 1
-    poolerometer.edgeMode = .zero
+//    let dDataSource = hotMess.setupDataSource(width: 4, height: 4, weights: myWeights)
+//    let convolometer = hotMess.setupConvolution(device: device, width: 4, height: 4, dataSource: ds)
+    let multiplier = MPSCNNMultiply(device: device)
+
+//    let poolerometer = MPSCNNPoolingMax(device: device, kernelWidth: 4, kernelHeight: 4)
+//    poolerometer.offset.x = 1
+//    poolerometer.offset.y = 1
+//    poolerometer.edgeMode = .zero
 
     let commandQueue = device.makeCommandQueue()!
     let commandBuffer = commandQueue.makeCommandBuffer()!
 
-    poolerometer.encode(
-        commandBuffer: commandBuffer, sourceImage: source1Image,
-        destinationImage: destinationImage
-    )
+//    poolerometer.encode(
+//        commandBuffer: commandBuffer, sourceImage: source1Image,
+//        destinationImage: destinationImage
+//    )
 
 //    convolometer.encode(commandBuffer: commandBuffer, sourceImage: source1Image, destinationImage: destinationImage)
+    multiplier.encode(
+        commandBuffer: commandBuffer,
+        primaryImage: s1Image,
+        secondaryImage: s2Image,
+        destinationImage: dImage
+    )
 
     commandBuffer.commit()
     commandBuffer.waitUntilCompleted()
 
-    print("inputs", inputs)
-    let outputs = hotMess.getOutputs(from: destinationImage, region: outputRegion, width: 6, height: 5)
-    print("outputs \(outputs.map { Float($0 * 1) })")
+    print("s1Data", s1Data)
+    print("s2Daa", s2Data)
+    let outputs = hotMess.getOutputs(from: dImage, region: dRegion, width: 4, height: 4)
+    print("outputs \(outputs.map { Float($0) })")
 }
 
 demonstrateFutility()
+*/
+
+func demonstrateQuixote(width: Int, height: Int) {
+    let device = MTLCopyAllDevices()[0]
+    let commandQueue = device.makeCommandQueue()!
+    let commandBuffer = commandQueue.makeCommandBuffer()!
+
+    let source = Kernelodeon(device, width, height)
+    let destination = Kernelodeon(device, width, height)
+
+    let weights = UnsafeMutableBufferPointer<Float>.allocate(
+        capacity: width * height * 2
+    )
+
+    weights.initialize(repeating: 1)
+    defer { weights.deallocate() }
+
+    let c = Convolutioner(
+        device: device, width: width, height: height,
+        weights: UnsafeBufferPointer(rebasing: weights[...])
+    )
+
+    let yeOldeData = [FF32](repeating: 1, count: width * height)
+
+    source.inject(data: yeOldeData)
+
+    c.encode(to: commandBuffer, source: source, destination: destination)
+
+    commandBuffer.commit()
+    commandBuffer.waitUntilCompleted()
+
+    var result = [FF32](repeating: 0, count: width * height)
+
+    result.withUnsafeMutableBufferPointer { destination.extractData(to: $0) }
+
+    print("input  \(yeOldeData)")
+    print("result \(result.map { Float($0) * 256.0 / 127.0 })")
+}
+
+demonstrateQuixote(width: 4, height: 4)
